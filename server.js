@@ -1,36 +1,46 @@
 const express = require('express');
-const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { Pool } = require('pg');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-// Carpeta donde se guardan los datos. En Railway, monta un Volume
-// y apunta DATA_DIR a esa ruta para que los datos no se borren
-// con cada nuevo despliegue.
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
-const DATA_FILE = path.join(DATA_DIR, 'data.json');
 const FRAME_STYLES = ['frame-polaroid', 'frame-vintage', 'frame-floral', 'frame-heart', 'frame-scallop'];
 
-function ensureDataFile() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-  if (!fs.existsSync(DATA_FILE)) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify({ mainPhoto: null, memories: [], notes: [] }, null, 2));
-  }
+if (!process.env.DATABASE_URL) {
+  console.error('Falta la variable DATABASE_URL. Agrega un servicio de PostgreSQL en Railway y conéctalo a este servicio.');
 }
-function readData() {
-  ensureDataFile();
-  try {
-    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-  } catch (e) {
-    return { mainPhoto: null, memories: [], notes: [] };
-  }
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL && process.env.DATABASE_URL.includes('railway') ? { rejectUnauthorized: false } : false
+});
+
+async function setupTables() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS main_photo (
+      id INT PRIMARY KEY DEFAULT 1,
+      data_url TEXT
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS memories (
+      id TEXT PRIMARY KEY,
+      src TEXT NOT NULL,
+      caption TEXT DEFAULT '',
+      frame TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT now()
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS notes (
+      id TEXT PRIMARY KEY,
+      text TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT now()
+    );
+  `);
 }
-function writeData(data) {
-  ensureDataFile();
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-}
+
 function newId() {
   return Date.now().toString(36) + crypto.randomBytes(4).toString('hex');
 }
@@ -39,55 +49,92 @@ app.use(express.json({ limit: '15mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Estado completo (foto principal + recuerdos + notas)
-app.get('/api/state', (req, res) => {
-  res.json(readData());
+app.get('/api/state', async (req, res) => {
+  try {
+    const photoRes = await pool.query('SELECT data_url FROM main_photo WHERE id = 1');
+    const memoriesRes = await pool.query('SELECT id, src, caption, frame FROM memories ORDER BY created_at ASC');
+    const notesRes = await pool.query('SELECT id, text FROM notes ORDER BY created_at ASC');
+    res.json({
+      mainPhoto: photoRes.rows[0] ? photoRes.rows[0].data_url : null,
+      memories: memoriesRes.rows,
+      notes: notesRes.rows
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'error leyendo la base de datos' });
+  }
 });
 
 // Foto principal (la del círculo)
-app.post('/api/main-photo', (req, res) => {
+app.post('/api/main-photo', async (req, res) => {
   const { dataUrl } = req.body || {};
   if (!dataUrl) return res.status(400).json({ error: 'falta dataUrl' });
-  const data = readData();
-  data.mainPhoto = dataUrl;
-  writeData(data);
-  res.json({ ok: true });
+  try {
+    await pool.query(
+      `INSERT INTO main_photo (id, data_url) VALUES (1, $1)
+       ON CONFLICT (id) DO UPDATE SET data_url = $1`,
+      [dataUrl]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'error guardando la foto' });
+  }
 });
 
 // Recuerdos (foto + texto con marco)
-app.post('/api/memories', (req, res) => {
+app.post('/api/memories', async (req, res) => {
   const { src, caption } = req.body || {};
   if (!src) return res.status(400).json({ error: 'falta src' });
-  const data = readData();
-  const frame = FRAME_STYLES[data.memories.length % FRAME_STYLES.length];
-  const item = { id: newId(), src, caption: (caption || '').slice(0, 300), frame };
-  data.memories.push(item);
-  writeData(data);
-  res.json(item);
+  try {
+    const countRes = await pool.query('SELECT COUNT(*)::int AS n FROM memories');
+    const frame = FRAME_STYLES[countRes.rows[0].n % FRAME_STYLES.length];
+    const id = newId();
+    const item = { id, src, caption: (caption || '').slice(0, 300), frame };
+    await pool.query(
+      'INSERT INTO memories (id, src, caption, frame) VALUES ($1, $2, $3, $4)',
+      [item.id, item.src, item.caption, item.frame]
+    );
+    res.json(item);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'error guardando el recuerdo' });
+  }
 });
 
-app.delete('/api/memories/:id', (req, res) => {
-  const data = readData();
-  data.memories = data.memories.filter((m) => m.id !== req.params.id);
-  writeData(data);
-  res.json({ ok: true });
+app.delete('/api/memories/:id', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM memories WHERE id = $1', [req.params.id]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'error borrando el recuerdo' });
+  }
 });
 
 // Notitas
-app.post('/api/notes', (req, res) => {
+app.post('/api/notes', async (req, res) => {
   const { text } = req.body || {};
   if (!text) return res.status(400).json({ error: 'falta text' });
-  const data = readData();
-  const item = { id: newId(), text: text.slice(0, 500) };
-  data.notes.push(item);
-  writeData(data);
-  res.json(item);
+  try {
+    const id = newId();
+    const item = { id, text: text.slice(0, 500) };
+    await pool.query('INSERT INTO notes (id, text) VALUES ($1, $2)', [item.id, item.text]);
+    res.json(item);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'error guardando la notita' });
+  }
 });
 
-app.delete('/api/notes/:id', (req, res) => {
-  const data = readData();
-  data.notes = data.notes.filter((n) => n.id !== req.params.id);
-  writeData(data);
-  res.json({ ok: true });
+app.delete('/api/notes/:id', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM notes WHERE id = $1', [req.params.id]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'error borrando la notita' });
+  }
 });
 
 // Cualquier otra ruta devuelve la página principal
@@ -95,6 +142,13 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log('Servidor corriendo en el puerto ' + PORT);
-});
+setupTables()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log('Servidor corriendo en el puerto ' + PORT);
+    });
+  })
+  .catch((err) => {
+    console.error('No se pudieron crear las tablas:', err);
+    process.exit(1);
+  });
