@@ -330,7 +330,9 @@
       <span class="icon">📷</span>
       Toca aquí para poner su foto
     </label>
-    <img id="photoImg" alt="Su foto">
+    <label for="photoInput" style="display:contents;">
+      <img id="photoImg" alt="Su foto" style="cursor:pointer;">
+    </label>
     <input type="file" id="photoInput" accept="image/*">
   </div>
 
@@ -347,7 +349,7 @@
       No necesito una razón especial para pensar en ti, pero hoy quise hacer
       algo distinto: regalarte este pequeño espacio, hecho con cariño,
       solo para decirte que <em>eres la mejor personita</em> y que me encantaría
-      seguir molestandote mucho tiempo mas.
+      seguir molestandote por mucho tiempo.
     </p>
   </div>
 
@@ -424,24 +426,31 @@
     container.appendChild(p);
   }
 
-  // Subida de foto principal (queda solo en tu navegador, no se envía a ningún lado)
+  // Subida de foto principal (se guarda en el servidor, se ve igual para todos)
   const input = document.getElementById('photoInput');
   const img = document.getElementById('photoImg');
   const label = document.getElementById('uploadLabel');
+
   input.addEventListener('change', (e)=>{
     const file = e.target.files[0];
     if(!file) return;
     const reader = new FileReader();
-    reader.onload = function(ev){
+    reader.onload = async function(ev){
       img.src = ev.target.result;
       img.style.display='block';
       label.style.display='none';
+      try{
+        await fetch('/api/main-photo', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ dataUrl: ev.target.result })
+        });
+      }catch(err){ console.error('No se pudo guardar la foto', err); }
     };
     reader.readAsDataURL(file);
   });
 
   // ---- Recuerdos (foto + texto, marcos variados) ----
-  const FRAME_STYLES = ['frame-polaroid','frame-vintage','frame-floral','frame-heart','frame-scallop'];
   const memoriesGrid = document.getElementById('memoriesGrid');
   const memoriesBtn = document.getElementById('memoriesBtn');
   const memModalOverlay = document.getElementById('memModalOverlay');
@@ -452,35 +461,28 @@
   const memCaption = document.getElementById('memCaption');
   let pendingImage = null;
 
-  function getMemories(){
-    try{ return JSON.parse(localStorage.getItem('paraTiMemories') || '[]'); }catch(e){ return []; }
-  }
-  function setMemories(list){
-    try{ localStorage.setItem('paraTiMemories', JSON.stringify(list)); }catch(e){}
-  }
-  function renderMemories(){
-    const list = getMemories();
+  function renderMemories(list){
     memoriesGrid.innerHTML = '';
-    if(list.length === 0){
+    if(!list || list.length === 0){
       memoriesGrid.innerHTML = '<p class="empty-memories">Aún no hay recuerdos guardados. Toca el botón de arriba para agregar el primero 🌻</p>';
       return;
     }
-    list.forEach((m, idx)=>{
+    list.forEach((m)=>{
       const card = document.createElement('div');
       card.className = 'memory-card ' + m.frame;
       card.innerHTML = `
-        <span class="del" data-idx="${idx}">✕</span>
+        <span class="del" data-id="${m.id}">✕</span>
         <img src="${m.src}" alt="recuerdo">
         ${m.caption ? `<div class="cap">${m.caption.replace(/</g,'&lt;')}</div>` : ''}
       `;
       memoriesGrid.appendChild(card);
     });
     memoriesGrid.querySelectorAll('.del').forEach(el=>{
-      el.addEventListener('click', ()=>{
-        const list = getMemories();
-        list.splice(Number(el.dataset.idx),1);
-        setMemories(list);
-        renderMemories();
+      el.addEventListener('click', async ()=>{
+        try{
+          await fetch('/api/memories/' + el.dataset.id, { method:'DELETE' });
+          loadState();
+        }catch(err){ console.error(err); }
       });
     });
   }
@@ -503,16 +505,18 @@
     };
     reader.readAsDataURL(file);
   });
-  memSave.addEventListener('click', ()=>{
+  memSave.addEventListener('click', async ()=>{
     if(!pendingImage){ memImageInput.click(); return; }
-    const list = getMemories();
-    const frame = FRAME_STYLES[list.length % FRAME_STYLES.length];
-    list.push({ src: pendingImage, caption: memCaption.value.trim(), frame });
-    setMemories(list);
-    renderMemories();
-    memModalOverlay.classList.remove('open');
+    try{
+      await fetch('/api/memories', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ src: pendingImage, caption: memCaption.value.trim() })
+      });
+      memModalOverlay.classList.remove('open');
+      loadState();
+    }catch(err){ console.error(err); }
   });
-  renderMemories();
 
   // ---- Notitas ----
   const notesList = document.getElementById('notesList');
@@ -522,31 +526,24 @@
   const modalSave = document.getElementById('modalSave');
   const noteInput = document.getElementById('noteInput');
 
-  function getNotes(){
-    try{ return JSON.parse(localStorage.getItem('paraTiNotes') || '[]'); }catch(e){ return []; }
-  }
-  function setNotes(notes){
-    try{ localStorage.setItem('paraTiNotes', JSON.stringify(notes)); }catch(e){}
-  }
-  function renderNotes(){
-    const notes = getNotes();
+  function renderNotes(notes){
     notesList.innerHTML = '';
-    if(notes.length === 0){
+    if(!notes || notes.length === 0){
       notesList.innerHTML = '<p class="empty-note">Aún no hay notitas... toca el ✏️ para dejar una 💛</p>';
       return;
     }
-    notes.forEach((n, idx)=>{
+    notes.forEach((n)=>{
       const card = document.createElement('div');
       card.className='note-card';
-      card.innerHTML = `<span class="del" data-idx="${idx}">✕</span>${n.replace(/</g,'&lt;')}`;
+      card.innerHTML = `<span class="del" data-id="${n.id}">✕</span>${n.text.replace(/</g,'&lt;')}`;
       notesList.appendChild(card);
     });
     notesList.querySelectorAll('.del').forEach(el=>{
-      el.addEventListener('click', ()=>{
-        const notes = getNotes();
-        notes.splice(Number(el.dataset.idx),1);
-        setNotes(notes);
-        renderNotes();
+      el.addEventListener('click', async ()=>{
+        try{
+          await fetch('/api/notes/' + el.dataset.id, { method:'DELETE' });
+          loadState();
+        }catch(err){ console.error(err); }
       });
     });
   }
@@ -556,17 +553,40 @@
   });
   modalCancel.addEventListener('click', ()=> modalOverlay.classList.remove('open'));
   modalOverlay.addEventListener('click', (e)=>{ if(e.target===modalOverlay) modalOverlay.classList.remove('open'); });
-  modalSave.addEventListener('click', ()=>{
+  modalSave.addEventListener('click', async ()=>{
     const text = noteInput.value.trim();
     if(text){
-      const notes = getNotes();
-      notes.push(text);
-      setNotes(notes);
-      renderNotes();
+      try{
+        await fetch('/api/notes', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ text })
+        });
+        loadState();
+      }catch(err){ console.error(err); }
     }
     modalOverlay.classList.remove('open');
   });
-  renderNotes();
+
+  // ---- Cargar todo desde el servidor ----
+  async function loadState(){
+    try{
+      const res = await fetch('/api/state');
+      const data = await res.json();
+      if(data.mainPhoto){
+        img.src = data.mainPhoto;
+        img.style.display='block';
+        label.style.display='none';
+      }
+      renderMemories(data.memories);
+      renderNotes(data.notes);
+    }catch(err){
+      console.error('No se pudo cargar el estado', err);
+      renderMemories([]);
+      renderNotes([]);
+    }
+  }
+  loadState();
 
   // ---- Botón de corazones ----
   document.getElementById('heartBtn').addEventListener('click', ()=>{
