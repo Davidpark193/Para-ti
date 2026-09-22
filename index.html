@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Para ti 🌻</title>
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg1:#fff9e6;
+    --bg2:#ffe9a8;
+    --yellow:#ffc107;
+    --yellow-dark:#f5a623;
+    --text:#5a4210;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; min-height:100%;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(255,255,255,0.6), transparent 60%),
+      linear-gradient(180deg,var(--bg1),var(--bg2) 60%, #ffe08a);
+    font-family:'Poppins',sans-serif;
+    color:var(--text);
+    overflow-x:hidden;
+  }
+  .sunrays{
+    position:fixed; top:-20%; left:50%; transform:translateX(-50%);
+    width:140vw; height:140vw; max-width:1400px; max-height:1400px;
+    background: repeating-conic-gradient(from 0deg, rgba(255,215,90,0.25) 0deg 6deg, transparent 6deg 18deg);
+    border-radius:50%;
+    z-index:0;
+    animation: spin 90s linear infinite;
+    opacity:0.6;
+  }
+  @keyframes spin{ to{ transform:translateX(-50%) rotate(360deg);} }
+
+  .envelope-screen{
+    position:fixed; inset:0; z-index:50;
+    display:flex; align-items:center; justify-content:center; flex-direction:column;
+    background:linear-gradient(180deg,var(--bg1),var(--bg2));
+    transition: opacity 0.6s ease, visibility 0.6s ease;
+    text-align:center; padding:20px;
+  }
+  .envelope-screen.hidden{ opacity:0; visibility:hidden; pointer-events:none; }
+  .envelope{
+    font-size: 4.5rem;
+    cursor:pointer;
+    animation: bob 2.4s ease-in-out infinite;
+    filter: drop-shadow(0 6px 10px rgba(0,0,0,0.15));
+  }
+  @keyframes bob{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(-10px);} }
+  .envelope-screen p{
+    font-family:'Dancing Script',cursive;
+    font-size:1.6rem; color:var(--yellow-dark); margin-top:18px;
+  }
+  main{ transition: filter 0.6s ease; }
+  main.blurred{ filter: blur(6px); }
+  .petals{position:fixed; inset:0; pointer-events:none; z-index:1;}
+  .petal{
+    position:absolute; top:-10%; font-size:22px;
+    animation: fall linear infinite;
+    opacity:0.85;
+  }
+  @keyframes fall{
+    0%{ transform: translateY(-10vh) rotate(0deg); }
+    100%{ transform: translateY(110vh) rotate(360deg); }
+  }
+  main{
+    position:relative; z-index:2;
+    max-width:600px; margin:0 auto;
+    padding: 40px 20px 60px;
+    text-align:center;
+  }
+  h1{
+    font-family:'Dancing Script',cursive;
+    font-size: clamp(2.2rem, 8vw, 3.2rem);
+    color: var(--yellow-dark);
+    margin-bottom: 6px;
+    text-shadow: 1px 1px 0 #fff8dc;
+  }
+  .sub{
+    font-size:1rem; opacity:0.8; margin-bottom:28px;
+  }
+  .flowers-row{
+    font-size: clamp(1.8rem, 6vw, 2.6rem);
+    margin: 10px 0 28px;
+    letter-spacing: 6px;
+  }
+  .photo-frame{
+    width: min(280px, 80vw);
+    aspect-ratio: 1/1;
+    margin: 0 auto 18px;
+    border-radius: 50%;
+    border: 6px solid var(--yellow);
+    box-shadow: 0 8px 30px rgba(245,166,35,0.35), 0 0 0 10px rgba(255,193,7,0.12);
+    display:flex; align-items:center; justify-content:center;
+    background: #fffdf5;
+    overflow:hidden;
+    position:relative;
+    animation: glow 3s ease-in-out infinite;
+  }
+  @keyframes glow{
+    0%,100%{ box-shadow: 0 8px 30px rgba(245,166,35,0.35), 0 0 0 10px rgba(255,193,7,0.10); }
+    50%{ box-shadow: 0 8px 30px rgba(245,166,35,0.5), 0 0 0 14px rgba(255,193,7,0.18); }
+  }
+  .photo-frame img{
+    width:100%; height:100%; object-fit:cover; display:none;
+  }
+  .upload-label{
+    cursor:pointer;
+    font-size:0.85rem;
+    color: var(--yellow-dark);
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    padding: 10px;
+  }
+  .upload-label span.icon{ font-size: 2rem; }
+  input[type=file]{ display:none; }
+
+  .msg-card{
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(4px);
+    border-radius: 18px;
+    padding: 22px 24px;
+    margin: 20px 0;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    text-align:left;
+    line-height:1.7;
+    font-size: 1.02rem;
+  }
+  .msg-card em{ color: var(--yellow-dark); font-style:normal; font-weight:600; }
+
+  .music-box{
+    margin-top: 30px;
+    background: rgba(255,255,255,0.55);
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  }
+  .music-box p{ margin: 0 0 10px; font-size:0.9rem; opacity:0.8; }
+  .music-box iframe{
+    width:100%; aspect-ratio:16/9; border:none; border-radius:12px;
+  }
+
+  .signature{
+    margin-top: 36px;
+    font-family:'Dancing Script',cursive;
+    font-size:1.6rem;
+    color: var(--yellow-dark);
+  }
+
+  .sunflower-divider{
+    font-size:1.4rem; margin: 20px 0; opacity:0.7;
+  }
+
+  /* Recuerdos con marcos variados */
+  .memories-btn-wrap{ margin: 24px 0; }
+  .memories-btn{
+    background: var(--yellow-dark); color:#fff; border:none;
+    padding: 12px 24px; border-radius: 26px; font-size:0.95rem;
+    cursor:pointer; font-family:'Poppins',sans-serif; box-shadow:0 6px 16px rgba(245,166,35,0.35);
+  }
+  .memories-btn:active{ transform:scale(0.96); }
+
+  .memories-grid{
+    display:flex; flex-wrap:wrap; gap:22px; justify-content:center;
+    margin: 22px 0;
+  }
+  .memory-card{
+    width: 150px; background:#fff; padding: 10px 10px 14px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+    position:relative; font-size:0.8rem; text-align:center;
+  }
+  .memory-card img{ width:100%; height:130px; object-fit:cover; display:block; }
+  .memory-card .cap{
+    margin-top:8px; font-family:'Dancing Script',cursive; font-size:1.05rem; color:var(--text);
+    word-break: break-word;
+  }
+  .memory-card .del{
+    position:absolute; top:-8px; right:-8px; background:#fff; border-radius:50%;
+    width:22px; height:22px; display:flex; align-items:center; justify-content:center;
+    font-size:0.75rem; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.2); opacity:0.7;
+  }
+  .memory-card .del:hover{ opacity:1; }
+
+  /* Estilos de marco distintos */
+  .frame-polaroid{ transform: rotate(-4deg); border:1px solid #eee; }
+  .frame-vintage{
+    transform: rotate(3deg); border: 8px double var(--yellow-dark); padding:14px 14px 16px;
+    background:#fffdf2;
+  }
+  .frame-floral{
+    transform: rotate(-2deg); border-radius: 16px; border: 4px solid var(--yellow);
+    background: #fffef2;
+  }
+  .frame-floral img{ border-radius:10px; }
+  .frame-floral::before{
+    content:"🌼"; position:absolute; top:-14px; left:-10px; font-size:1.4rem;
+  }
+  .frame-heart{
+    transform: rotate(2deg); border-radius: 12px; border:3px dashed var(--yellow-dark);
+  }
+  .frame-heart .cap::before{ content:"💛 "; }
+  .frame-scallop{
+    transform: rotate(-3deg);
+    border-radius: 4px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.15), 0 0 0 6px #fffdf5, 0 0 0 7px var(--yellow);
+  }
+  .empty-memories{ opacity:0.55; font-size:0.9rem; }
+
+  /* Modal recuerdos */
+  .modal-box input[type=text]{
+    width:100%; padding:10px; border-radius:10px; border:1px solid #eddca0;
+    font-family:'Poppins',sans-serif; font-size:0.95rem; margin-top:10px;
+  }
+  .modal-box .file-btn{
+    display:inline-block; margin-top:10px; padding:8px 14px; border-radius:16px;
+    background:#f0e6c8; color:#5a4210; font-size:0.85rem; cursor:pointer;
+  }
+  .modal-box .preview{
+    width:100%; max-height:140px; object-fit:cover; border-radius:10px; margin-top:10px; display:none;
+  }
+
+  /* Galería extra de fotos */
+  .gallery{
+    display:flex; flex-wrap:wrap; gap:10px; justify-content:center;
+    margin: 18px 0;
+  }
+  .gallery-item{
+    width: 90px; height: 90px; border-radius: 14px;
+    overflow:hidden; border:3px solid var(--yellow);
+    background:#fffdf5; display:flex; align-items:center; justify-content:center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  .gallery-item img{ width:100%; height:100%; object-fit:cover; }
+  .gallery-add{
+    cursor:pointer; font-size:1.6rem; color:var(--yellow-dark);
+  }
+
+  /* Notas / mensajes agregados */
+  .notes-section{ margin-top: 24px; text-align:left; }
+  .notes-section h3{
+    font-family:'Dancing Script',cursive; color:var(--yellow-dark);
+    font-size:1.5rem; margin-bottom: 10px; text-align:center;
+  }
+  .note-card{
+    background:#fffef7; border-left:4px solid var(--yellow);
+    border-radius: 10px; padding:12px 16px; margin-bottom:10px;
+    font-size:0.95rem; box-shadow:0 2px 8px rgba(0,0,0,0.05);
+    position:relative;
+  }
+  .note-card .del{
+    position:absolute; top:6px; right:10px; cursor:pointer;
+    opacity:0.4; font-size:0.85rem;
+  }
+  .note-card .del:hover{ opacity:0.9; }
+  .empty-note{ opacity:0.5; font-size:0.9rem; text-align:center; }
+
+  /* Botón flotante */
+  .fab{
+    position:fixed; bottom: calc(20px + env(safe-area-inset-bottom,0px)); right:20px;
+    width:56px; height:56px; border-radius:50%;
+    background: var(--yellow); color:#5a4210;
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.5rem; box-shadow:0 6px 18px rgba(0,0,0,0.2);
+    cursor:pointer; z-index: 40; border:none;
+  }
+  .fab:active{ transform:scale(0.92); }
+
+  /* Modal */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(90,66,16,0.35);
+    display:flex; align-items:center; justify-content:center;
+    z-index: 60; opacity:0; visibility:hidden; transition:0.25s;
+    padding:20px;
+  }
+  .modal-overlay.open{ opacity:1; visibility:visible; }
+  .modal-box{
+    background:#fffdf5; border-radius:16px; padding:20px;
+    width:100%; max-width:380px; box-shadow:0 10px 30px rgba(0,0,0,0.25);
+  }
+  .modal-box h4{ margin:0 0 10px; font-family:'Dancing Script',cursive; color:var(--yellow-dark); font-size:1.4rem; }
+  .modal-box textarea{
+    width:100%; min-height:90px; border-radius:10px; border:1px solid #eddca0;
+    padding:10px; font-family:'Poppins',sans-serif; font-size:0.95rem; resize:vertical;
+  }
+  .modal-actions{ display:flex; gap:10px; margin-top:12px; justify-content:flex-end; }
+  .modal-actions button{
+    border:none; border-radius:20px; padding:8px 16px; font-size:0.9rem; cursor:pointer;
+  }
+  .btn-cancel{ background:#f0e6c8; color:#5a4210; }
+  .btn-save{ background:var(--yellow-dark); color:#fff; }
+
+  /* Botón de enviar corazones */
+  .heart-btn{
+    margin-top: 22px; background:none; border:2px solid var(--yellow-dark);
+    color:var(--yellow-dark); padding:10px 20px; border-radius:24px;
+    font-size:0.95rem; cursor:pointer; font-family:'Poppins',sans-serif;
+  }
+  .heart-btn:active{ transform:scale(0.96); }
+  .floating-heart{
+    position:fixed; bottom:10%; font-size:1.6rem; z-index:45;
+    animation: heartUp 2.2s ease-out forwards; pointer-events:none;
+  }
+  @keyframes heartUp{
+    0%{ transform:translateY(0) scale(0.8); opacity:1; }
+    100%{ transform:translateY(-70vh) scale(1.2); opacity:0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sunrays"></div>
+<div class="petals" id="petals"></div>
+
+<div class="envelope-screen" id="envelopeScreen">
+  <div class="envelope" id="envelopeBtn">💌</div>
+  <p>toca el sobre para abrir tu sorpresa</p>
+</div>
+
+<main class="blurred" id="mainContent">
+  <h1>Para ti 🌻</h1>
+  <p class="sub">Un pequeño rincón lleno de flores amarillas... y de ti.</p>
+
+  <div class="flowers-row">🌻🌼🌻🌼🌻</div>
+
+  <div class="photo-frame" id="photoFrame">
+    <label class="upload-label" for="photoInput" id="uploadLabel">
+      <span class="icon">📷</span>
+      Toca aquí para poner su foto
+    </label>
+    <img id="photoImg" alt="Su foto">
+    <input type="file" id="photoInput" accept="image/*">
+  </div>
+
+  <div class="sunflower-divider">✦ ✧ ✦</div>
+
+  <div class="sunflower-divider">✦ ✧ ✦</div>
+
+  <div class="msg-card">
+    <p>
+      Elegí flores amarillas porque son las que más me recuerdan a ti:
+      <em>alegres, cálidas y luminosas</em>, como haces sentir a quienes te rodean.
+    </p>
+    <p style="margin-top:14px;">
+      No necesito una razón especial para pensar en ti, pero hoy quise hacer
+      algo distinto: regalarte este pequeño espacio, hecho con cariño,
+      solo para decirte que <em>me gustas mucho</em> y que me encantaría
+      seguir conociéndote.
+    </p>
+  </div>
+
+  <div class="music-box">
+    <p>🎵 Una canción para acompañar este momento</p>
+    <iframe src="https://www.youtube.com/embed/2Vv-BfVoq4g?rel=0"
+            title="Música romántica" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+  </div>
+
+  <button class="heart-btn" id="heartBtn">💛 Enviar cariño</button>
+
+  <div class="notes-section">
+    <h3>Notitas para ti</h3>
+    <div id="notesList"></div>
+  </div>
+
+  <div class="sunflower-divider">✦ ✧ ✦</div>
+
+  <div class="memories-btn-wrap">
+    <button class="memories-btn" id="memoriesBtn">🖼️ Agregar un recuerdo</button>
+  </div>
+  <div class="memories-grid" id="memoriesGrid"></div>
+
+  <div class="signature">con cariño, para ti 💛</div>
+</main>
+
+<button class="fab" id="fabBtn" title="Agregar mensaje">✏️</button>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <h4>Escribe una notita 💛</h4>
+    <textarea id="noteInput" placeholder="Escribe algo lindo..."></textarea>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="modalCancel">Cancelar</button>
+      <button class="btn-save" id="modalSave">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="memModalOverlay">
+  <div class="modal-box">
+    <h4>Agregar un recuerdo 🌼</h4>
+    <label class="file-btn" for="memImageInput">📷 Elegir foto</label>
+    <input type="file" id="memImageInput" accept="image/*" style="display:none;">
+    <img class="preview" id="memPreview">
+    <input type="text" id="memCaption" placeholder="Escribe algo sobre esta foto...">
+    <div class="modal-actions">
+      <button class="btn-cancel" id="memCancel">Cancelar</button>
+      <button class="btn-save" id="memSave">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Pantalla de sobre inicial
+  document.getElementById('envelopeBtn').addEventListener('click', ()=>{
+    document.getElementById('envelopeScreen').classList.add('hidden');
+    document.getElementById('mainContent').classList.remove('blurred');
+    const iframe = document.querySelector('.music-box iframe');
+    if(iframe){ iframe.src += (iframe.src.includes('?')?'&':'?') + 'autoplay=1'; }
+  });
+
+  // Pétalos cayendo
+  const container = document.getElementById('petals');
+  const emojis = ['🌼','🌻','🌸'];
+  for(let i=0;i<18;i++){
+    const p = document.createElement('div');
+    p.className='petal';
+    p.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+    p.style.left = Math.random()*100+'vw';
+    p.style.animationDuration = (8+Math.random()*10)+'s';
+    p.style.animationDelay = (Math.random()*10)+'s';
+    p.style.fontSize = (16+Math.random()*16)+'px';
+    container.appendChild(p);
+  }
+
+  // Subida de foto principal (queda solo en tu navegador, no se envía a ningún lado)
+  const input = document.getElementById('photoInput');
+  const img = document.getElementById('photoImg');
+  const label = document.getElementById('uploadLabel');
+  input.addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev){
+      img.src = ev.target.result;
+      img.style.display='block';
+      label.style.display='none';
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // ---- Recuerdos (foto + texto, marcos variados) ----
+  const FRAME_STYLES = ['frame-polaroid','frame-vintage','frame-floral','frame-heart','frame-scallop'];
+  const memoriesGrid = document.getElementById('memoriesGrid');
+  const memoriesBtn = document.getElementById('memoriesBtn');
+  const memModalOverlay = document.getElementById('memModalOverlay');
+  const memCancel = document.getElementById('memCancel');
+  const memSave = document.getElementById('memSave');
+  const memImageInput = document.getElementById('memImageInput');
+  const memPreview = document.getElementById('memPreview');
+  const memCaption = document.getElementById('memCaption');
+  let pendingImage = null;
+
+  function getMemories(){
+    try{ return JSON.parse(localStorage.getItem('paraTiMemories') || '[]'); }catch(e){ return []; }
+  }
+  function setMemories(list){
+    try{ localStorage.setItem('paraTiMemories', JSON.stringify(list)); }catch(e){}
+  }
+  function renderMemories(){
+    const list = getMemories();
+    memoriesGrid.innerHTML = '';
+    if(list.length === 0){
+      memoriesGrid.innerHTML = '<p class="empty-memories">Aún no hay recuerdos guardados. Toca el botón de arriba para agregar el primero 🌻</p>';
+      return;
+    }
+    list.forEach((m, idx)=>{
+      const card = document.createElement('div');
+      card.className = 'memory-card ' + m.frame;
+      card.innerHTML = `
+        <span class="del" data-idx="${idx}">✕</span>
+        <img src="${m.src}" alt="recuerdo">
+        ${m.caption ? `<div class="cap">${m.caption.replace(/</g,'&lt;')}</div>` : ''}
+      `;
+      memoriesGrid.appendChild(card);
+    });
+    memoriesGrid.querySelectorAll('.del').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        const list = getMemories();
+        list.splice(Number(el.dataset.idx),1);
+        setMemories(list);
+        renderMemories();
+      });
+    });
+  }
+  memoriesBtn.addEventListener('click', ()=>{
+    pendingImage = null;
+    memPreview.style.display='none';
+    memCaption.value='';
+    memModalOverlay.classList.add('open');
+  });
+  memCancel.addEventListener('click', ()=> memModalOverlay.classList.remove('open'));
+  memModalOverlay.addEventListener('click', (e)=>{ if(e.target===memModalOverlay) memModalOverlay.classList.remove('open'); });
+  memImageInput.addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      pendingImage = ev.target.result;
+      memPreview.src = pendingImage;
+      memPreview.style.display='block';
+    };
+    reader.readAsDataURL(file);
+  });
+  memSave.addEventListener('click', ()=>{
+    if(!pendingImage){ memImageInput.click(); return; }
+    const list = getMemories();
+    const frame = FRAME_STYLES[list.length % FRAME_STYLES.length];
+    list.push({ src: pendingImage, caption: memCaption.value.trim(), frame });
+    setMemories(list);
+    renderMemories();
+    memModalOverlay.classList.remove('open');
+  });
+  renderMemories();
+
+  // ---- Notitas ----
+  const notesList = document.getElementById('notesList');
+  const fabBtn = document.getElementById('fabBtn');
+  const modalOverlay = document.getElementById('modalOverlay');
+  const modalCancel = document.getElementById('modalCancel');
+  const modalSave = document.getElementById('modalSave');
+  const noteInput = document.getElementById('noteInput');
+
+  function getNotes(){
+    try{ return JSON.parse(localStorage.getItem('paraTiNotes') || '[]'); }catch(e){ return []; }
+  }
+  function setNotes(notes){
+    try{ localStorage.setItem('paraTiNotes', JSON.stringify(notes)); }catch(e){}
+  }
+  function renderNotes(){
+    const notes = getNotes();
+    notesList.innerHTML = '';
+    if(notes.length === 0){
+      notesList.innerHTML = '<p class="empty-note">Aún no hay notitas... toca el ✏️ para dejar una 💛</p>';
+      return;
+    }
+    notes.forEach((n, idx)=>{
+      const card = document.createElement('div');
+      card.className='note-card';
+      card.innerHTML = `<span class="del" data-idx="${idx}">✕</span>${n.replace(/</g,'&lt;')}`;
+      notesList.appendChild(card);
+    });
+    notesList.querySelectorAll('.del').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        const notes = getNotes();
+        notes.splice(Number(el.dataset.idx),1);
+        setNotes(notes);
+        renderNotes();
+      });
+    });
+  }
+  fabBtn.addEventListener('click', ()=>{
+    noteInput.value='';
+    modalOverlay.classList.add('open');
+  });
+  modalCancel.addEventListener('click', ()=> modalOverlay.classList.remove('open'));
+  modalOverlay.addEventListener('click', (e)=>{ if(e.target===modalOverlay) modalOverlay.classList.remove('open'); });
+  modalSave.addEventListener('click', ()=>{
+    const text = noteInput.value.trim();
+    if(text){
+      const notes = getNotes();
+      notes.push(text);
+      setNotes(notes);
+      renderNotes();
+    }
+    modalOverlay.classList.remove('open');
+  });
+  renderNotes();
+
+  // ---- Botón de corazones ----
+  document.getElementById('heartBtn').addEventListener('click', ()=>{
+    for(let i=0;i<8;i++){
+      setTimeout(()=>{
+        const h = document.createElement('div');
+        h.className='floating-heart';
+        h.textContent = ['💛','🌻','✨'][Math.floor(Math.random()*3)];
+        h.style.left = (20+Math.random()*60)+'vw';
+        document.body.appendChild(h);
+        setTimeout(()=>h.remove(), 2300);
+      }, i*100);
+    }
+  });
+</script>
+
+</body>
+</html>
